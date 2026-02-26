@@ -25,6 +25,8 @@ export function Paywall({
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expressReady, setExpressReady] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
   const stripeRef = useRef<any>(null);
   const elementsRef = useRef<any>(null);
   const mountedRef = useRef(false);
@@ -37,15 +39,14 @@ export function Paywall({
 
   async function initStripe() {
     try {
-      // Dynamic import of Stripe
       const { loadStripe } = await import("@stripe/stripe-js");
 
       // Get config
       const configRes = await fetch("/api/config");
-      if (!configRes.ok) throw new Error("Failed to load config");
+      if (!configRes.ok) throw new Error("Failed to load payment config");
       const config = await configRes.json();
 
-      // Create subscription
+      // Create subscription with incomplete payment
       const subRes = await fetch("/api/create-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,9 +86,89 @@ export function Paywall({
       });
       elementsRef.current = elements;
 
-      const paymentEl = elements.create("payment");
-      const container = document.getElementById("payment-element");
-      if (container) paymentEl.mount(container);
+      // --- Express Checkout (Apple Pay / Google Pay) ---
+      const expressCheckoutEl = elements.create("expressCheckout", {
+        emailRequired: true,
+      });
+
+      const expressContainer = document.getElementById("express-checkout");
+      if (expressContainer) {
+        expressCheckoutEl.mount(expressContainer);
+      }
+
+      expressCheckoutEl.on("ready", ({ availablePaymentMethods }: any) => {
+        // Only show if Apple Pay or Google Pay is available
+        if (availablePaymentMethods) {
+          setExpressReady(true);
+        }
+      });
+
+      expressCheckoutEl.on("confirm", async (event: any) => {
+        try {
+          setError(null);
+          setLoading(true);
+
+          track({
+            type: "payment_started",
+            flowId,
+            stepId: step.id,
+            timestamp: Date.now(),
+            metadata: { method: "express_checkout" },
+          });
+
+          const { error: submitError } = await elements.submit();
+          if (submitError) {
+            setError(submitError.message || "Payment failed");
+            event.complete("fail");
+            setLoading(false);
+            return;
+          }
+
+          const returnUrl = `${window.location.origin}${window.location.pathname}#/step/success`;
+
+          const { error: confirmError } = await stripe.confirmPayment({
+            elements,
+            clientSecret,
+            confirmParams: { return_url: returnUrl },
+          });
+
+          if (confirmError) {
+            setError(confirmError.message || "Payment failed");
+            event.complete("fail");
+            setLoading(false);
+            track({
+              type: "payment_error",
+              flowId,
+              stepId: step.id,
+              timestamp: Date.now(),
+              metadata: {
+                error: confirmError.message,
+                method: "express_checkout",
+              },
+            });
+            return;
+          }
+
+          event.complete("success");
+          track({
+            type: "payment_success",
+            flowId,
+            stepId: step.id,
+            timestamp: Date.now(),
+            metadata: { method: "express_checkout" },
+          });
+          onNext();
+        } catch (e: any) {
+          setError("Payment failed");
+          event.complete("fail");
+          setLoading(false);
+        }
+      });
+
+      // --- Card Payment Element (hidden until user clicks "Credit Card") ---
+      const paymentEl = elements.create("payment", { layout: "tabs" });
+      const cardContainer = document.getElementById("payment-element");
+      if (cardContainer) paymentEl.mount(cardContainer);
 
       setLoading(false);
     } catch (err: any) {
@@ -96,33 +177,36 @@ export function Paywall({
     }
   }
 
-  async function handleSubmit() {
+  async function handleCardSubmit() {
     if (!stripeRef.current || !elementsRef.current) return;
 
     setLoading(true);
+    setError(null);
+
     track({
       type: "payment_started",
       flowId,
       stepId: step.id,
       timestamp: Date.now(),
+      metadata: { method: "card" },
     });
 
     const returnUrl = `${window.location.origin}${window.location.pathname}#/step/success`;
 
-    const { error } = await stripeRef.current.confirmPayment({
+    const { error: confirmError } = await stripeRef.current.confirmPayment({
       elements: elementsRef.current,
       confirmParams: { return_url: returnUrl },
     });
 
-    if (error) {
-      setError(error.message || "Payment failed");
+    if (confirmError) {
+      setError(confirmError.message || "Payment failed");
       setLoading(false);
       track({
         type: "payment_error",
         flowId,
         stepId: step.id,
         timestamp: Date.now(),
-        metadata: { error: error.message },
+        metadata: { error: confirmError.message, method: "card" },
       });
     } else {
       track({
@@ -130,6 +214,7 @@ export function Paywall({
         flowId,
         stepId: step.id,
         timestamp: Date.now(),
+        metadata: { method: "card" },
       });
       onNext();
     }
@@ -146,15 +231,10 @@ export function Paywall({
       progress={progress}
       canGoBack={canGoBack}
       onBack={onBack}
-      ctaLabel={
-        loading
-          ? "Loading..."
-          : resolveText(step.ctaLabel, step.ctaLabel_variants)
-      }
-      ctaDisabled={loading}
-      onCTA={handleSubmit}
+      showCTA={false}
     >
       <div className={styles.content}>
+        {/* Features list */}
         {step.features && (
           <div className={styles.features}>
             {step.features.map((f, i) => (
@@ -174,15 +254,119 @@ export function Paywall({
           </div>
         )}
 
-        <div className={styles.paymentContainer}>
-          <div id="payment-element" className={styles.stripeElement} />
-          {loading && (
-            <div className={styles.loadingOverlay}>
-              <div className={styles.spinner} />
-              <span>Setting up secure payment...</span>
-            </div>
-          )}
+        {/* Express Checkout (Apple Pay / Google Pay) — shown first */}
+        <div
+          className={styles.expressContainer}
+          style={{ display: expressReady ? "block" : "none" }}
+        >
+          <div id="express-checkout" className={styles.expressElement} />
         </div>
+
+        {/* Apple Pay placeholder while Stripe loads */}
+        {!expressReady && !showCardForm && (
+          <div className={styles.applePayPlaceholder}>
+            <button className={styles.applePayBtn} disabled={loading}>
+              {loading ? (
+                <span className={styles.loadingText}>
+                  <span className={styles.spinnerInline} />
+                  Setting up payment...
+                </span>
+              ) : (
+                <span> Pay</span>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className={styles.divider}>
+          <span>or</span>
+        </div>
+
+        {/* Credit Card toggle button */}
+        {!showCardForm ? (
+          <button
+            className={styles.cardToggle}
+            onClick={() => setShowCardForm(true)}
+            disabled={loading}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="2" y="4" width="16" height="12" rx="2" />
+              <path d="M2 8h16" />
+            </svg>
+            Credit or Debit Card
+          </button>
+        ) : (
+          <div className={styles.cardSection}>
+            <div className={styles.paymentContainer}>
+              <div id="payment-element" className={styles.stripeElement} />
+              {loading && (
+                <div className={styles.loadingOverlay}>
+                  <div className={styles.spinner} />
+                  <span>Setting up secure payment...</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              className={styles.submitBtn}
+              onClick={handleCardSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <span className={styles.loadingText}>
+                  <span className={styles.spinnerInline} />
+                  Processing...
+                </span>
+              ) : (
+                <>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="2" width="10" height="14" rx="2" />
+                    <circle cx="8" cy="10" r="1.5" />
+                    <path d="M6 6V5a2 2 0 114 0v1" />
+                  </svg>
+                  {resolveText(step.ctaLabel, step.ctaLabel_variants)}
+                </>
+              )}
+            </button>
+
+            <div className={styles.guarantee}>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="var(--color-text-muted)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="1" width="10" height="12" rx="2" />
+                <circle cx="7" cy="8" r="1" />
+                <path d="M5.5 5V4a1.5 1.5 0 013 0v1" />
+              </svg>
+              <span>Secured by Stripe. Cancel anytime.</span>
+            </div>
+          </div>
+        )}
 
         {error && <p className={styles.error}>{error}</p>}
       </div>
