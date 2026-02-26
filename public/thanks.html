@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Thanks</title>
+</head>
+<body>
+<h3>Thanks!</h3>
+<p>We’re opening the app for you…</p>
+
+<a
+		id="open-app"
+		href="#"
+		style="
+      display:none;
+      margin-top:16px;
+      padding:10px 16px;
+      border-radius:999px;
+      background:black;
+      color:white;
+      text-decoration:none;
+      font-size:15px;
+      font-weight:500;
+      inline-size:fit-content;
+    "
+>
+	Open app
+</a>
+
+<section style="margin-top:24px;padding:16px;border-radius:12px;border:1px solid #eee;">
+	<h3 style="margin:0 0 8px;">Try a free Apple Watch face</h3>
+	<p style="margin:0 0 12px;font-size:14px;color:#555;">
+		Install a sample face instantly to see how it looks on your Apple Watch.
+	</p>
+	<a
+			href="/wallpaper.watchface"
+			type="application/vnd.apple.watchface"
+			style="
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 16px;
+      border-radius:999px;
+      background:black;
+      color:white;
+      text-decoration:none;
+      font-size:15px;
+      font-weight:500;
+    "
+	>
+		<span>⌚</span>
+		<span>Add to Apple Watch</span>
+	</a>
+	<p style="font-size:12px;color:#888;margin-top:8px;">
+		Best experience on iPhone with Apple Watch paired.
+	</p>
+</section>
+
+<script>
+    function init() {
+        const btn = document.getElementById("open-app");
+        const params = new URLSearchParams(location.search);
+        const paymentIntent = params.get("payment_intent");
+
+        if (!paymentIntent) {
+            btn.textContent = "Open app manually";
+            btn.style.display = "inline-block";
+            return;
+        }
+
+        const apiUrl = `/api/open-app-link?payment_intent=${encodeURIComponent(paymentIntent)}`;
+        btn.href = apiUrl;
+        btn.style.display = "inline-block";
+
+        window.location.replace(apiUrl);
+    }
+
+    init();
+</script>
+</body>
+</html>
