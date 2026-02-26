@@ -1,0 +1,29 @@
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xl);
+  text-align: center;
+  padding: var(--space-3xl) 0;
+}
+
+.checkCircle {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(150, 254, 0, 0.08);
+  border-radius: 50%;
+  animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.message {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  max-width: 280px;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) 200ms both;
+}

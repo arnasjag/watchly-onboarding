@@ -1,0 +1,147 @@
+{
+  "id": "watchly-onboarding-v1",
+  "version": 1,
+  "steps": [
+    {
+      "id": "welcome",
+      "type": "info-benefit",
+      "title": "Find Your Perfect Watch Face",
+      "subtitle": "Takes just 30 seconds",
+      "benefits": [
+        "500+ premium designs curated for you",
+        "Personalized recommendations",
+        "New watch faces added weekly"
+      ],
+      "ctaLabel": "Let's Go",
+      "next": "style"
+    },
+    {
+      "id": "style",
+      "type": "single-choice",
+      "title": "What's your vibe?",
+      "title_variants": {
+        "A": "What's your vibe?",
+        "B": "Pick your style"
+      },
+      "subtitle": "We'll personalize your experience",
+      "options": [
+        {
+          "id": "minimal",
+          "label": "Minimal",
+          "emoji": "⚪",
+          "description": "Clean and simple"
+        },
+        {
+          "id": "bold",
+          "label": "Bold & Colorful",
+          "emoji": "🎨",
+          "description": "Stand out"
+        },
+        {
+          "id": "classic",
+          "label": "Classic",
+          "emoji": "⌚",
+          "description": "Timeless elegance"
+        },
+        {
+          "id": "sporty",
+          "label": "Sporty",
+          "emoji": "⚡",
+          "description": "Active lifestyle"
+        }
+      ],
+      "ctaLabel": "Continue",
+      "next": "occasion"
+    },
+    {
+      "id": "occasion",
+      "type": "single-choice",
+      "title": "When do you dress up your watch?",
+      "options": [
+        {
+          "id": "daily",
+          "label": "Daily wear",
+          "emoji": "☀️",
+          "description": "Everyday looks"
+        },
+        {
+          "id": "workout",
+          "label": "Workouts",
+          "emoji": "💪",
+          "description": "Fitness focused"
+        },
+        {
+          "id": "events",
+          "label": "Special events",
+          "emoji": "✨",
+          "description": "Dress to impress"
+        },
+        {
+          "id": "always",
+          "label": "I switch often",
+          "emoji": "🔄",
+          "description": "Variety is key"
+        }
+      ],
+      "ctaLabel": "Continue",
+      "next": "features"
+    },
+    {
+      "id": "features",
+      "type": "multi-choice",
+      "title": "Must-have complications?",
+      "subtitle": "Pick all that matter to you",
+      "options": [
+        { "id": "weather", "label": "Weather", "emoji": "🌤" },
+        { "id": "steps", "label": "Steps", "emoji": "👟" },
+        { "id": "heart", "label": "Heart Rate", "emoji": "❤️" },
+        { "id": "calendar", "label": "Calendar", "emoji": "📅" },
+        { "id": "battery", "label": "Battery", "emoji": "🔋" },
+        { "id": "timer", "label": "Timer", "emoji": "⏱" },
+        { "id": "music", "label": "Music", "emoji": "🎵" }
+      ],
+      "minSelections": 1,
+      "ctaLabel": "Continue",
+      "next": "loading"
+    },
+    {
+      "id": "loading",
+      "type": "loading",
+      "title": "Curating your collection...",
+      "duration": 2500,
+      "messages": [
+        "Analyzing your style preferences...",
+        "Finding perfect matches...",
+        "Preparing your collection..."
+      ],
+      "ctaLabel": "",
+      "next": "paywall"
+    },
+    {
+      "id": "paywall",
+      "type": "paywall",
+      "title": "Unlock 500+ Premium Faces",
+      "subtitle": "Personalized for your style",
+      "features": [
+        "Unlimited watch face downloads",
+        "Exclusive premium designs",
+        "New faces added every week",
+        "All complications included"
+      ],
+      "ctaLabel": "Start Free Trial",
+      "ctaLabel_variants": {
+        "A": "Start Free Trial",
+        "B": "Unlock Premium Access"
+      },
+      "next": "success"
+    },
+    {
+      "id": "success",
+      "type": "success",
+      "title": "You're all set!",
+      "message": "Open the app to explore your personalized watch face collection.",
+      "ctaLabel": "Open App",
+      "next": ""
+    }
+  ]
+}

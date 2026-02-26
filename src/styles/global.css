@@ -1,0 +1,54 @@
+@import "./tokens.css";
+@import "./animations.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--color-text);
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-start),
+    var(--color-bg-mid),
+    var(--color-bg-end)
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+/* Selection */
+::selection {
+  background: rgba(150, 254, 0, 0.3);
+  color: #fff;
+}
