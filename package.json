@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && npx gh-pages -d dist"
   },
   "dependencies": {
     "@stripe/stripe-js": "^5.5.0",
@@ -19,5 +20,6 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
-  }
+  },
+  "homepage": "https://arnasjag.github.io/watchly-onboarding"
 }
