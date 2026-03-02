@@ -3,6 +3,7 @@ import type { PaywallStep } from "../types/flow";
 import { StepLayout } from "../components/StepLayout";
 import { track } from "../engine/analytics";
 import styles from "./Paywall.module.css";
+import { preloadStripeBootstrap, getStripeBootstrap, hasStripeBootstrap } from "../lib/stripeBootstrap";
 
 interface Props {
   step: PaywallStep;
@@ -30,6 +31,7 @@ export function Paywall({
   const stripeRef = useRef<any>(null);
   const elementsRef = useRef<any>(null);
   const mountedRef = useRef(false);
+  const paymentElementRef = useRef<any>(null);
 
   useEffect(() => {
     if (mountedRef.current) return;
@@ -37,71 +39,48 @@ export function Paywall({
     initStripe();
   }, []);
 
+    useEffect(() => {
+        if (!showCardForm) return;
+
+        const elements = elementsRef.current;
+        if (!elements) return;
+
+        if (!paymentElementRef.current) {
+            paymentElementRef.current = elements.create("payment", { layout: "tabs" });
+        }
+
+        const paymentElement = paymentElementRef.current;
+        const container = document.getElementById("payment-element");
+
+        if (paymentElement && container && !container.hasChildNodes()) {
+            paymentElement.mount(container);
+        }
+    }, [showCardForm]);
+
   async function initStripe() {
     try {
-      const { loadStripe } = await import("@stripe/stripe-js");
-
-      // Get config
-      const configRes = await fetch("/api/config");
-      if (!configRes.ok) throw new Error("Failed to load payment config");
-      const config = await configRes.json();
-
-      // Create subscription with incomplete payment
-      const subRes = await fetch("/api/create-subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId: config.priceId }),
-      });
-      if (!subRes.ok) throw new Error("Failed to create subscription");
-      const { clientSecret } = await subRes.json();
-
-      // Init Stripe
-      const stripe = await loadStripe(config.stripePublishableKey);
-      if (!stripe) throw new Error("Stripe failed to load");
-
-      stripeRef.current = stripe;
-      const elements = stripe.elements({
-        clientSecret,
-        appearance: {
-          theme: "night",
-          variables: {
-            colorPrimary: "#96fe00",
-            colorBackground: "rgba(255, 255, 255, 0.06)",
-            colorText: "#ffffff",
-            colorTextSecondary: "rgba(255, 255, 255, 0.6)",
-            borderRadius: "12px",
-            fontFamily: "system-ui, -apple-system, sans-serif",
-          },
-          rules: {
-            ".Input": {
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              boxShadow: "none",
-            },
-            ".Input:focus": {
-              border: "1px solid rgba(150, 254, 0, 0.5)",
-              boxShadow: "0 0 0 1px rgba(150, 254, 0, 0.2)",
-            },
-          },
-        },
-      });
-      elementsRef.current = elements;
-
-      // --- Express Checkout (Apple Pay / Google Pay) ---
-      const expressCheckoutEl = elements.create("expressCheckout", {
-        emailRequired: true,
-      });
-
-      const expressContainer = document.getElementById("express-checkout");
-      if (expressContainer) {
-        expressCheckoutEl.mount(expressContainer);
-      }
-
-      expressCheckoutEl.on("ready", ({ availablePaymentMethods }: any) => {
-        // Only show if Apple Pay or Google Pay is available
-        if (availablePaymentMethods) {
-          setExpressReady(true);
+        if (!hasStripeBootstrap()) {
+            await preloadStripeBootstrap();
         }
-      });
+
+        const { stripe, elements, state } = getStripeBootstrap();
+
+        stripeRef.current = stripe;
+        elementsRef.current = elements;
+
+        // Express Checkout создаём и монтируем уже здесь (DOM контейнер есть)
+        const expressCheckoutEl = elements.create("expressCheckout", {
+            emailRequired: true,
+        });
+
+        const expressContainer = document.getElementById("express-checkout");
+        if (expressContainer && !expressContainer.hasChildNodes()) {
+            expressCheckoutEl.mount(expressContainer);
+        }
+
+        expressCheckoutEl.on("ready", ({ availablePaymentMethods }: any) => {
+            if (availablePaymentMethods) setExpressReady(true);
+        });
 
       expressCheckoutEl.on("confirm", async (event: any) => {
         try {
@@ -128,7 +107,7 @@ export function Paywall({
 
           const { error: confirmError } = await stripe.confirmPayment({
             elements,
-            clientSecret,
+            clientSecret: state.clientSecret,
             confirmParams: { return_url: returnUrl },
           });
 
@@ -164,11 +143,6 @@ export function Paywall({
           setLoading(false);
         }
       });
-
-      // --- Card Payment Element (hidden until user clicks "Credit Card") ---
-      const paymentEl = elements.create("payment", { layout: "tabs" });
-      const cardContainer = document.getElementById("payment-element");
-      if (cardContainer) paymentEl.mount(cardContainer);
 
       setLoading(false);
     } catch (err: any) {
@@ -257,13 +231,18 @@ export function Paywall({
         {/* Express Checkout (Apple Pay / Google Pay) — shown first */}
         <div
           className={styles.expressContainer}
-          style={{ display: expressReady ? "block" : "none" }}
+          style={{
+            opacity: expressReady ? 1 : 0,
+            height: expressReady ? "auto" : 0,
+            overflow: "hidden",
+            pointerEvents: expressReady ? "auto" : "none",
+        }}
         >
           <div id="express-checkout" className={styles.expressElement} />
         </div>
 
         {/* Apple Pay placeholder while Stripe loads */}
-        {!expressReady && !showCardForm && (
+        {!expressReady && (
           <div className={styles.applePayPlaceholder}>
             <button className={styles.applePayBtn} disabled={loading}>
               {loading ? (

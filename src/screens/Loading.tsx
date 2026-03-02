@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import type { LoadingStep } from "../types/flow";
 import { StepLayout } from "../components/StepLayout";
 import styles from "./Loading.module.css";
+import { preloadStripeBootstrap } from "../lib/stripeBootstrap";
 
 interface Props {
   step: LoadingStep;
@@ -23,6 +24,12 @@ export function Loading({
   const [msgIndex, setMsgIndex] = useState(0);
   const [loadProgress, setLoadProgress] = useState(0);
   const called = useRef(false);
+
+    useEffect(() => {
+        preloadStripeBootstrap().catch((e) => {
+            console.error("Stripe preload failed:", e);
+        });
+    }, []);
 
   useEffect(() => {
     const interval = step.duration / step.messages.length;

@@ -7,6 +7,7 @@ import type {
 } from "../types/flow";
 import { getOrAssignVariant } from "./abTest";
 import { track } from "./analytics";
+import {resetStripeBootstrap} from "../lib/stripeBootstrap.ts";
 
 export class FlowRunner {
   private config: FlowConfig;
@@ -151,6 +152,7 @@ export class FlowRunner {
     localStorage.removeItem(`flow:${this.config.id}`);
     this.state = this.loadOrInit();
     this.persist();
+    resetStripeBootstrap();
   }
 
   resolveText(base: string, variants?: ABVariants): string {
