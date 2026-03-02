@@ -99,7 +99,13 @@ export function Paywall({
         }
 
         expressCheckoutEl.on("ready", ({ availablePaymentMethods }: any) => {
-            if (availablePaymentMethods) setExpressReady(true);
+            if (!availablePaymentMethods) return;
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setExpressReady(true);
+                });
+            });
         });
 
       expressCheckoutEl.on("confirm", async (event: any) => {
@@ -250,23 +256,32 @@ export function Paywall({
         )}
 
         {/* Express Checkout (Apple Pay / Google Pay) — shown first */}
-          <div className={styles.expressSlot}>
+          <div
+              className={styles.expressContainer}
+              style={{
+                  opacity: expressReady ? 1 : 0,
+                  height: expressReady ? "auto" : 0,
+                  pointerEvents: expressReady ? "auto" : "none",
+              }}
+          >
               <div id="express-checkout" className={styles.expressElement} />
-
-              {/* Placeholder поверх, пока Stripe кнопку не подготовил */}
-              {!expressReady && (
-                  <button className={styles.expressPlaceholder} disabled>
-                      {loading ? (
-                          <span className={styles.loadingText}>
-                              <span className={styles.spinnerInline} />
-                              Setting up payment...
-                            </span>
-                      ) : (
-                          <span>Pay</span>
-                      )}
-                  </button>
-              )}
           </div>
+
+        {/* Apple Pay placeholder while Stripe loads */}
+        {!expressReady && (
+          <div className={styles.applePayPlaceholder}>
+            <button className={styles.applePayBtn} disabled={loading}>
+              {loading ? (
+                <span className={styles.loadingText}>
+                  <span className={styles.spinnerInline} />
+                  Setting up payment...
+                </span>
+              ) : (
+                <span> Pay</span>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Divider */}
         <div className={styles.divider}>
