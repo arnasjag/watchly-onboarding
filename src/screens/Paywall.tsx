@@ -253,23 +253,19 @@ export function Paywall({
           <div className={styles.expressSlot}>
               <div id="express-checkout" className={styles.expressElement} />
 
-              <button
-                  className={styles.applePayBtn}
-                  disabled={loading}
-                  style={{
-                      opacity: expressReady ? 0 : 1,
-                      pointerEvents: expressReady ? "none" : "auto",
-                  }}
-              >
-                  {loading ? (
-                      <span className={styles.loadingText}>
-                        <span className={styles.spinnerInline} />
-                        Setting up payment...
-                      </span>
-                  ) : (
-                      <span>Pay</span>
-                  )}
-              </button>
+              {/* Placeholder поверх, пока Stripe кнопку не подготовил */}
+              {!expressReady && (
+                  <button className={styles.expressPlaceholder} disabled>
+                      {loading ? (
+                          <span className={styles.loadingText}>
+                              <span className={styles.spinnerInline} />
+                              Setting up payment...
+                            </span>
+                      ) : (
+                          <span>Pay</span>
+                      )}
+                  </button>
+              )}
           </div>
 
         {/* Divider */}
