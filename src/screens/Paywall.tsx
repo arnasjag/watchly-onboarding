@@ -33,6 +33,10 @@ export function Paywall({
   const mountedRef = useRef(false);
   const paymentElementRef = useRef<any>(null);
 
+    const handledRedirectRef = useRef(false);
+
+
+
   useEffect(() => {
     if (mountedRef.current) return;
     mountedRef.current = true;
@@ -56,6 +60,22 @@ export function Paywall({
             paymentElement.mount(container);
         }
     }, [showCardForm]);
+
+    useEffect(() => {
+        if (handledRedirectRef.current) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const redirectStatus = params.get("redirect_status");
+        if (redirectStatus !== "succeeded") return;
+
+        handledRedirectRef.current = true;
+
+        window.history.replaceState({}, "", `${window.location.origin}`);
+
+        queueMicrotask(() => {
+            onNext();
+        });
+    }, [onNext]);
 
   async function initStripe() {
     try {
@@ -103,7 +123,7 @@ export function Paywall({
             return;
           }
 
-          const returnUrl = `${window.location.origin}${window.location.pathname}#/step/success`;
+          const returnUrl = `${window.location.origin}#/step/success`;
 
           const { error: confirmError } = await stripe.confirmPayment({
             elements,
@@ -165,11 +185,12 @@ export function Paywall({
       metadata: { method: "card" },
     });
 
-    const returnUrl = `${window.location.origin}${window.location.pathname}#/step/success`;
+    const returnUrl = `${window.location.origin}/#/step/success`;
 
     const { error: confirmError } = await stripeRef.current.confirmPayment({
       elements: elementsRef.current,
       confirmParams: { return_url: returnUrl },
+      redirect: "if_required",
     });
 
     if (confirmError) {
@@ -229,33 +250,27 @@ export function Paywall({
         )}
 
         {/* Express Checkout (Apple Pay / Google Pay) — shown first */}
-        <div
-          className={styles.expressContainer}
-          style={{
-            opacity: expressReady ? 1 : 0,
-            height: expressReady ? "auto" : 0,
-            overflow: "hidden",
-            pointerEvents: expressReady ? "auto" : "none",
-        }}
-        >
-          <div id="express-checkout" className={styles.expressElement} />
-        </div>
+          <div className={styles.expressSlot}>
+              <div id="express-checkout" className={styles.expressElement} />
 
-        {/* Apple Pay placeholder while Stripe loads */}
-        {!expressReady && (
-          <div className={styles.applePayPlaceholder}>
-            <button className={styles.applePayBtn} disabled={loading}>
-              {loading ? (
-                <span className={styles.loadingText}>
-                  <span className={styles.spinnerInline} />
-                  Setting up payment...
-                </span>
-              ) : (
-                <span> Pay</span>
-              )}
-            </button>
+              <button
+                  className={styles.applePayBtn}
+                  disabled={loading}
+                  style={{
+                      opacity: expressReady ? 0 : 1,
+                      pointerEvents: expressReady ? "none" : "auto",
+                  }}
+              >
+                  {loading ? (
+                      <span className={styles.loadingText}>
+                        <span className={styles.spinnerInline} />
+                        Setting up payment...
+                      </span>
+                  ) : (
+                      <span>Pay</span>
+                  )}
+              </button>
           </div>
-        )}
 
         {/* Divider */}
         <div className={styles.divider}>
