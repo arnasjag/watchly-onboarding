@@ -259,7 +259,7 @@ export function Paywall({
           <div
               className={styles.expressContainer}
               style={{
-                  opacity: expressReady ? 1 : 0,
+                  display: expressReady ? 'block' : 'none',
                   height: expressReady ? "auto" : 0,
                   pointerEvents: expressReady ? "auto" : "none",
               }}
