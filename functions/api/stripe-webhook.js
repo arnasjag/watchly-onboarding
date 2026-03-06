@@ -1,90 +1,88 @@
 import { sendToRevenueCat } from "../revenuecat.js";
+import { getOrCreateFirebaseUser } from "../firebase-user-service.js";
 
 export async function onRequestPost(context) {
-    const { STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY } = context.env;
+    try {
+        const { STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY } = context.env;
 
-    const signature = context.request.headers.get("stripe-signature");
-    const rawBody = await context.request.text();
+        const signature = context.request.headers.get("stripe-signature");
+        const rawBody = await context.request.text();
 
-    const event = await verifyStripeSignature(
-        rawBody,
-        signature,
-        STRIPE_WEBHOOK_SECRET
-    );
-
-    if (!event) {
-        return new Response("Invalid signature", { status: 400 });
-    }
-
-    if (event.type === "customer.subscription.updated") {
-        const subscription = event.data.object;
-        const prev = event.data.previous_attributes || {};
-        const subscriptionId = subscription.id;
-        const customerId = subscription.customer;
-        const newStatus = subscription.status;
-        const oldStatus = prev.status;
-
-        const becameActive =
-            (oldStatus === "incomplete" || !oldStatus) &&
-            (newStatus === "active" || newStatus === "trialing");
-
-        if (!becameActive) {
-            return new Response("not active");
-        }
-
-        const email = await getEmailFromSubscription(subscription, STRIPE_SECRET_KEY);
-
-        if (!email) {
-            return new Response("No email", { status: 500 });
-        }
-
-        const res = await fetch("/api/firebase-user", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                customerEmail: email,
-            }),
-        });
-
-        const data = await res.json();
-        const uid = data.uid;
-
-        if (!uid) {
-            return new Response("No uid", { status: 500 });
-        }
-
-        await updateStripeCustomer(customerId, email, STRIPE_SECRET_KEY);
-
-        await updateStripeSubscriptionMetadata(
-            subscriptionId,
-            uid,
-            email,
-            STRIPE_SECRET_KEY
+        const event = await verifyStripeSignature(
+            rawBody,
+            signature,
+            STRIPE_WEBHOOK_SECRET
         );
 
-        const userIp =
-            context.request.headers.get("CF-Connecting-IP") ||
-            context.request.headers.get("x-forwarded-for") ||
-            null;
-        const userdata = {
-            uid,
-            email,
-            userIp
-        };
+        if (!event) {
+            return new Response("Invalid signature", { status: 400 });
+        }
 
-        try {
-            await sendToRevenueCat(subscriptionId, userdata, context.env);
-        } catch (e) {
-            console.error("RevenueCat sync failed:", e);
-            return new Response("RC sync failed", { status: 500 });
+        if (event.type === "customer.subscription.updated") {
+            const subscription = event.data.object;
+            const prev = event.data.previous_attributes || {};
+            const subscriptionId = subscription.id;
+            const customerId = subscription.customer;
+            const newStatus = subscription.status;
+            const oldStatus = prev.status;
+
+            const becameActive =
+                (oldStatus === "incomplete" || !oldStatus) &&
+                (newStatus === "active" || newStatus === "trialing");
+
+            if (!becameActive) {
+                return new Response("not active");
+            }
+
+            const email = await getEmailFromSubscription(subscription, STRIPE_SECRET_KEY);
+
+            if (!email) {
+                return new Response("No email", { status: 500 });
+            }
+
+            const uid = await getOrCreateFirebaseUser(email, context.env);
+
+            if (!uid) {
+                return new Response("No uid", { status: 500 });
+            }
+
+            await updateStripeCustomer(customerId, email, STRIPE_SECRET_KEY);
+
+            await updateStripeSubscriptionMetadata(
+                subscriptionId,
+                uid,
+                email,
+                STRIPE_SECRET_KEY
+            );
+
+            const userIp =
+                context.request.headers.get("CF-Connecting-IP") ||
+                context.request.headers.get("x-forwarded-for") ||
+                null;
+            const userdata = {
+                uid,
+                email,
+                userIp
+            };
+
+            try {
+                await sendToRevenueCat(subscriptionId, userdata, context.env);
+            } catch (e) {
+                console.error("RevenueCat sync failed:", e);
+                return new Response("RC sync failed", { status: 500 });
+            }
+
+            return new Response("ok");
         }
 
         return new Response("ok");
+    } catch (e) {
+        console.error("stripe-webhook error:", e);
+        return new Response(
+            e instanceof Error ? e.message : "Internal Server Error",
+            { status: 500 }
+        );
     }
-
-    return new Response("ok");
 }
 
 async function getEmailFromSubscription(subscription, stripeSecret) {
@@ -151,30 +149,6 @@ async function updateStripeCustomer(customerId, email, secret) {
 
         await res.text();
     } catch (e) {
-    }
-}
-
-async function getFirebaseUidByEmail(email) {
-    const url =
-        "https://watchfaces.co/firebase/userUid.php?customerEmail=" +
-        encodeURIComponent(email);
-
-    const res = await fetch(url, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
-
-    if (!res.ok) {
-        return null;
-    }
-
-    try {
-        const uid = await res.json();
-        return uid || null;
-    } catch (e) {
-        return null;
     }
 }
 
