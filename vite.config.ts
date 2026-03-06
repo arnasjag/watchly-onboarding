@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://poc-watchfaces.pages.dev",
+        target: "https://watchly-onboarding.pages.dev",
         changeOrigin: true,
         secure: true,
       },

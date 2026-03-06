@@ -2,7 +2,6 @@
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
 
 type Config = {
-    priceId: string;
     stripePublishableKey: string;
 };
 
@@ -33,7 +32,6 @@ export async function preloadStripeBootstrap(): Promise<void> {
         const subRes = await fetch("/api/create-subscription", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ priceId: config.priceId }),
         });
         if (!subRes.ok) throw new Error("Failed to create subscription");
         const { clientSecret } = (await subRes.json()) as { clientSecret: string };

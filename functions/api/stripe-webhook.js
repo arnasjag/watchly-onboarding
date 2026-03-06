@@ -62,7 +62,13 @@ export async function onRequestPost(context) {
             email,
             userIp
         };
-        await sendToRevenueCat(subscriptionId, userdata, context.env);
+
+        try {
+            await sendToRevenueCat(subscriptionId, userdata, context.env);
+        } catch (e) {
+            console.error("RevenueCat sync failed:", e);
+            return new Response("RC sync failed", { status: 500 });
+        }
 
         return new Response("ok");
     }

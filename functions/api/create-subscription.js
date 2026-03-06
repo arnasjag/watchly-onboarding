@@ -1,10 +1,13 @@
 export async function onRequestPost(context) {
-    const { STRIPE_SECRET_KEY } = context.env;
+    const origin = context.request.headers.get("Origin");
+    const allowed = ["https://watchly-onboarding.pages.dev"];
+    if (!allowed.includes(origin)) {
+        return new Response("Forbidden", { status: 403 });
+    }
 
-    const body = await context.request.json();
-    const priceId = body.priceId;
+    const { STRIPE_SECRET_KEY, PRICE_ID } = context.env;
 
-    if (!priceId) {
+    if (!PRICE_ID) {
         return new Response(JSON.stringify({ error: "priceId required" }), {
             status: 400,
             headers: { "Content-Type": "application/json" },
@@ -37,7 +40,7 @@ export async function onRequestPost(context) {
 
     const subForm = new URLSearchParams();
     subForm.set("customer", customer.id);
-    subForm.set("items[0][price]", priceId);
+    subForm.set("items[0][price]", PRICE_ID);
     subForm.set("payment_behavior", "default_incomplete");
     subForm.set("payment_settings[save_default_payment_method]", "on_subscription");
     subForm.append("expand[]", "latest_invoice.payment_intent");

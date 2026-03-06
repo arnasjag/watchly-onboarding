@@ -32,10 +32,7 @@ export function Paywall({
   const elementsRef = useRef<any>(null);
   const mountedRef = useRef(false);
   const paymentElementRef = useRef<any>(null);
-
-    const handledRedirectRef = useRef(false);
-
-
+  const handledRedirectRef = useRef(false);
 
   useEffect(() => {
     if (mountedRef.current) return;
@@ -88,7 +85,6 @@ export function Paywall({
         stripeRef.current = stripe;
         elementsRef.current = elements;
 
-        // Express Checkout создаём и монтируем уже здесь (DOM контейнер есть)
         const expressCheckoutEl = elements.create("expressCheckout", {
             emailRequired: true,
         });
@@ -192,10 +188,14 @@ export function Paywall({
     });
 
     const returnUrl = `${window.location.origin}/#/step/success`;
+    const email = (document.getElementById("email") as HTMLInputElement).value;
 
     const { error: confirmError } = await stripeRef.current.confirmPayment({
       elements: elementsRef.current,
-      confirmParams: { return_url: returnUrl },
+      confirmParams: {
+          return_url: returnUrl,
+          receipt_email: email,
+      },
       redirect: "if_required",
     });
 
@@ -313,6 +313,12 @@ export function Paywall({
         ) : (
           <div className={styles.cardSection}>
             <div className={styles.paymentContainer}>
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Email"
+                    required
+                />
               <div id="payment-element" className={styles.stripeElement} />
               {loading && (
                 <div className={styles.loadingOverlay}>
