@@ -38,7 +38,18 @@ export async function onRequestPost(context) {
             return new Response("No email", { status: 500 });
         }
 
-        const uid = await getFirebaseUidByEmail(email);
+        const res = await fetch("/api/firebase-user", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                customerEmail: email,
+            }),
+        });
+
+        const data = await res.json();
+        const uid = data.uid;
 
         if (!uid) {
             return new Response("No uid", { status: 500 });
