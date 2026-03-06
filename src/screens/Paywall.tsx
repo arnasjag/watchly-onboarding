@@ -75,20 +75,6 @@ export function Paywall({
     }, [onNext]);
 
   async function initStripe() {
-      const res = await fetch("/api/firebase-user", {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-              customerEmail: 'test@example.com',
-          }),
-      });
-
-      const data = await res.json();
-      const uid = data.uid;
-      console.log(uid)
-
     try {
         if (!hasStripeBootstrap()) {
             await preloadStripeBootstrap();
