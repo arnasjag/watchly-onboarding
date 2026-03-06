@@ -3,7 +3,7 @@ export async function sendToRevenueCat(subscriptionId, userdata, env) {
 
     const payload = {
         app_user_id: userdata.uid,
-        fetch_token: subscriptionId
+        fetch_token: subscriptionId,
     };
 
     const receipts = await fetch("https://api.revenuecat.com/v1/receipts", {
@@ -17,8 +17,9 @@ export async function sendToRevenueCat(subscriptionId, userdata, env) {
     });
 
     if (!receipts.ok) {
-        const body = await receipts.text();
-        throw new Error(`RevenueCat /receipts failed: ${receipts.status} ${body}`);
+        throw new Error(
+            `RevenueCat /receipts failed: ${receipts.status} ${receiptsText}`
+        );
     }
 
     const attrs = {
@@ -39,17 +40,23 @@ export async function sendToRevenueCat(subscriptionId, userdata, env) {
         attributes: attrs,
     };
 
-    const attributes = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userdata.uid)}/attributes`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + REVENUECAT_API_KEY,
-        },
-        body: JSON.stringify(body),
-    });
+    const attributes = await fetch(
+        `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userdata.uid)}/attributes`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + REVENUECAT_API_KEY,
+            },
+            body: JSON.stringify(body),
+        }
+    );
+
+    const attributesText = await attributes.text();
 
     if (!attributes.ok) {
-        const body = await attributes.text();
-        throw new Error(`RevenueCat /attributes failed: ${attributes.status} ${body}`);
+        throw new Error(
+            `RevenueCat /attributes failed: ${attributes.status} ${attributesText}`
+        );
     }
 }
