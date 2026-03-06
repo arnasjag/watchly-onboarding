@@ -313,11 +313,12 @@ export function Paywall({
         ) : (
           <div className={styles.cardSection}>
             <div className={styles.paymentContainer}>
+                <label htmlFor="email" className={styles.Label}>Email</label>
                 <input
                     type="email"
                     id="email"
-                    placeholder="Email"
-                    required
+                    placeholder="you@email.com"
+                    className={styles.emailInput}
                 />
               <div id="payment-element" className={styles.stripeElement} />
               {loading && (

@@ -250,3 +250,38 @@
   text-align: center;
   padding: var(--space-sm);
 }
+
+.emailInput {
+    width: 100%;
+    padding: 14px 16px;
+
+    background: rgba(255,255,255,0.06);
+    color: #ffffff;
+
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+
+    font-size: 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.emailInput::placeholder {
+    color: rgba(255,255,255,0.4);
+}
+
+.emailInput:focus {
+    outline: 0px;
+    border-color: #96fe00;
+    box-shadow: 0 0 0 1px rgba(150, 254, 0, 0.2);
+    border: 1px solid rgba(150, 254, 0, 0.5);
+}
+.Label {
+    margin-bottom: 0.25rem;
+    font-size: 0.93rem;
+    display: flex;
+}
+
+
