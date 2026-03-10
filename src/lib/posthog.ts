@@ -7,6 +7,7 @@ posthog.init("phc_4VOZZSzcexOpm4ujueqqjfdVVSX2IIPTinmSgfWMV1J", {
   capture_pageleave: false,
   person_profiles: "identified_only",
   persistence: "localStorage",
+  capture_exceptions: true,
   session_recording: {
     maskAllInputs: true,
   },
