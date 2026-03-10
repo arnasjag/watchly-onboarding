@@ -1,3 +1,5 @@
+import posthog from "../lib/posthog";
+
 export type EventType =
   | "flow_started"
   | "step_viewed"
@@ -31,6 +33,14 @@ try {
 export function track(event: AnalyticsEvent): void {
   queue.push(event);
   localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+
+  posthog.capture(event.type, {
+    flow_id: event.flowId,
+    step_id: event.stepId,
+    ...(event.variant && { variant: event.variant }),
+    ...(event.answer && { answer: event.answer }),
+    ...event.metadata,
+  });
 
   if (import.meta.env.DEV) {
     console.log(
