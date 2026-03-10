@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import type { PaywallStep } from "../types/flow";
 import { StepLayout } from "../components/StepLayout";
 import { track } from "../engine/analytics";
+import posthog from "../lib/posthog";
 import styles from "./Paywall.module.css";
 import { preloadStripeBootstrap, getStripeBootstrap, hasStripeBootstrap } from "../lib/stripeBootstrap";
 
@@ -147,6 +148,12 @@ export function Paywall({
                 method: "express_checkout",
               },
             });
+            posthog.capture("payment_error", {
+              error: confirmError.message,
+              method: "express_checkout",
+              stepId: step.id,
+              flowId,
+            });
             return;
           }
 
@@ -163,6 +170,12 @@ export function Paywall({
           setError("Payment failed");
           event.complete("fail");
           setLoading(false);
+          posthog.capture("payment_error", {
+            error: e?.message || "Unknown express checkout error",
+            method: "express_checkout",
+            stepId: step.id,
+            flowId,
+          });
         }
       });
 
@@ -170,6 +183,11 @@ export function Paywall({
     } catch (err: any) {
       setError(err.message || "Payment setup failed");
       setLoading(false);
+      posthog.capture("stripe_init_error", {
+        error: err?.message || "Payment setup failed",
+        stepId: step.id,
+        flowId,
+      });
     }
   }
 
@@ -208,6 +226,12 @@ export function Paywall({
         stepId: step.id,
         timestamp: Date.now(),
         metadata: { error: confirmError.message, method: "card" },
+      });
+      posthog.capture("payment_error", {
+        error: confirmError.message,
+        method: "card",
+        stepId: step.id,
+        flowId,
       });
     } else {
       track({
