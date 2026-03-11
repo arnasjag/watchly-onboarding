@@ -39,10 +39,6 @@ export function Paywall({
     if (mountedRef.current) return;
     mountedRef.current = true;
     initStripe();
-
-      setTimeout(() => {
-          throw new Error("PostHog test error");
-      }, 2000);
   }, []);
 
     useEffect(() => {
